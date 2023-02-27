@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: testgw
+  annotations:
+    kubernetes.io/ingress.class: azure/application-gateway
+  labels:
+    name: testgw
+spec:
+  rules:
+  - host: "app1.qburst.build"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+             name: test
+             port: 
+               number: 5000

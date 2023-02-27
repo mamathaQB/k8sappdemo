@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  labels:
+    app: testdb
+spec:
+  ports:
+  - port: 27017
+    protocol: TCP
+  selector:
+    appdb: testdb
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-db
+spec:
+  selector:
+    matchLabels:
+      appdb: testdb
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        appdb: testdb
+    spec:
+      containers:
+      - name: test-db
+        image: k8sappdemoacr.azurecr.io/mongo:v1
+        env:
+        - name: MONGODB_DATABASE
+          value: testdata
+        ports:
+        - containerPort: 27017
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test
+  labels:
+    apps: test
+spec:
+  ports:
+  - name: tcp-5000
+    port: 5000
+    targetPort: 5000
+    protocol: TCP
+  selector:
+    app: test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test
+spec:
+  selector:
+    matchLabels:
+      app: test
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: test
+    spec:
+      containers:
+      - name: test-app
+        image: k8sappdemoacr.azurecr.io/k8s-app:v2
+        env:
+        - name: MONGODB_HOST
+          value: mongodb
+        ports:
+        - containerPort: 5000
+          name: web-port
+        imagePullPolicy: Always
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: testgw
+  annotations:
+    kubernetes.io/ingress.class: azure/application-gateway
+  labels:
+    name: testgw
+spec:
+  rules:
+  - host: "app1.qburst.build"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+             name: test
+             port:
+               number: 5000
+
